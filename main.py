@@ -11,7 +11,7 @@ from datetime import datetime
 from tonsdk.utils import Address
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
-from config import api_token, owner_id
+from config import api_token
 
 class States(StatesGroup):
     AddAdmin = State()
@@ -24,7 +24,19 @@ cur = con.cursor()
 bot = Bot(token=api_token)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-@dp.message_handler(commands=['start'], state='*')
+
+@dp.message_handler(state='*', content_types=['new_chat_members'])
+async def update_chats(message: types.Message):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+    
+@dp.message_handler(commands=['start'], state='*', chat_type=types.ChatType.PRIVATE)
 async def send_welcome(message: types.Message, state: FSMContext):
     if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {message.from_user.id}").fetchall():
         cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({message.from_user.id}, '{message.from_user.username}')")
@@ -37,6 +49,20 @@ async def send_welcome(message: types.Message, state: FSMContext):
     else:
         await message.answer("Hi, I'm a bot that will help you set up access to chats using SBT", reply_markup=kb.UserKb)
     await state.finish()
+
+
+@dp.message_handler(commands=['reg'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def reg_user(message: types.Message, state: FSMContext):
+    id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chats = cur.execute(f"SELECT chat_id FROM Users WHERE id_tg == {message.from_user.id}").fetchall()
+    if id not in chats:
+        address = cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()
+        if address and address[0][0] != None:
+            cur.execute(f"INSERT INTO Users (id_tg, username, address, chat_id) VALUES ({message.from_user.id}, '{message.from_user.username}', '{address[0][0]}', {id})")
+            con.commit()
+        else:
+            cur.execute(f"INSERT INTO Users (id_tg, username, chat_id) VALUES ({message.from_user.id}, '{message.from_user.username}', {id})")
+            con.commit()
 
 @dp.message_handler(text="Check my SBT", state='*')
 async def check_sbt(message: types.Message, state: FSMContext):
@@ -52,7 +78,7 @@ async def check_sbt(message: types.Message, state: FSMContext):
         msg = await message.answer(f"To verify your SBT, you need to connect your wallet.\nTonkeeper Link:{generated_url_tonkeep}\nTonhub Link:{generated_url_tonhub}")
 
         flag = True
-        while f:
+        while flag:
             await asyncio.sleep(1)
             if connector.connected:
                 if connector.account.address:
@@ -68,38 +94,52 @@ async def check_sbt(message: types.Message, state: FSMContext):
 async def add_sbt(message: types.Message, state: FSMContext):
     pass
 
-@dp.message_handler(text="Add new admin", state='*')
+@dp.message_handler(commands=['add_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_admin(message: types.Message, state: FSMContext):
-    if str(message.from_user.id) == owner_id:
-        await bot.send_message(message.from_user.id, 'To add a new admin, send his username.\n(In order for a user to become an admin, he must launch this bot at least once)\nExample: "@username"')
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    if message.from_user.id == owner_id:
+        await message.answer('To add a new admin, send his username.\n(In order for a user to become an admin, he must launch this bot at least once)\nExample: "@username"\nReply for this message')
         await States.AddAdmin.set()
     else: 
         await message.answer("You don't have enough permission")
-
-@dp.message_handler(text="Remove admin", state='*')
+        
+@dp.message_handler(commands=['remove_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_admin(message: types.Message, state: FSMContext):
-    if str(message.from_user.id) == owner_id:
-        await bot.send_message(message.from_user.id, 'To remove admin, send his username.\nExample: "@username"')
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    if message.from_user.id == owner_id:
+        await message.answer('To remove admin, send his username.\nExample: "@username"\nReply for this message')
         await States.RemoveAdmin.set()
     else: 
         await message.answer("You don't have enough permission")
 
-@dp.message_handler(state = States.AddAdmin)
+@dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
     if ('@' not in message.text):
         await message.answer("incorrectly entered a username")
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
-    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
-    id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()[0][0]
-    if str(id_tg) == owner_id:
+
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}' AND chat_id == {chat_id}").fetchall()
+    id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
+    if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner")
     elif id:
-        if not cur.execute(f"SELECT id FROM Admins WHERE id_users == {id[0][0]}").fetchall():
+
+        admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
+        print(admins_id)
+        need_assign = -1
+        for adm in admins_id:
+            chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
+            if message.chat.id == cur.execute(f"SELECT id_tg FROM Chats WHERE id == {chat_id}").fetchall()[0][0]:
+                need_assign = adm[0]
+                break
+
+        if need_assign == -1:
             cur.execute(f"INSERT INTO Admins (id_users) VALUES ({id[0][0]})")
             con.commit()
             await message.answer("The user is assigned as an admin")
-            await bot.send_message(id_tg, "You have been appointed as an admin", reply_markup=kb.AdminKb)
             await state.finish()
         else: 
             await message.answer("This user is already an admin")
@@ -107,21 +147,34 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         await message.answer("This user has never started a bot or incorrectly entered a username")
 
 @dp.message_handler(state = States.RemoveAdmin)
-async def check_to_add_admin(message: types.Message, state: FSMContext):
+async def check_to_remove_admin(message: types.Message, state: FSMContext):
     if ('@' not in message.text):
         await message.answer("incorrectly entered a username")
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
-    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
+
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}' AND chat_id == {chat_id}").fetchall()
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()[0][0]
-    if str(id_tg) == owner_id:
+
+    if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner")
     elif id:
-        if cur.execute(f"SELECT id FROM Admins WHERE id_users == {id[0][0]}").fetchall():
-            cur.execute(f"DELETE from Admins where id_users == {id[0][0]}")
+        
+        admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
+        print(admins_id)
+        need_delete = -1
+        for adm in admins_id:
+            chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
+            if message.chat.id == cur.execute(f"SELECT id_tg FROM Chats WHERE id == {chat_id}").fetchall()[0][0]:
+                need_delete = adm[0]
+                break
+
+        if need_delete != -1:
+            cur.execute(f"DELETE from Admins where id_users == {need_delete}")
             con.commit()
             await message.answer("The user has been removed from the admin position")
-            await bot.send_message(id_tg, "You have been removed from the admin position", reply_markup=kb.UserKb)
             await state.finish()
         else: 
             await message.answer("This user is not an admin")
