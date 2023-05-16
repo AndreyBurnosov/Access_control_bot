@@ -3,10 +3,12 @@ import sqlite3
 import re
 import asyncio
 import KeyBoards as kb
+import requests
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils.markdown import link
 from datetime import datetime
 from tonsdk.utils import Address
 from pytonconnect import TonConnect
@@ -16,6 +18,7 @@ from config import api_token
 class States(StatesGroup):
     AddAdmin = State()
     RemoveAdmin = State()
+    AddNFT = State() 
 
 
 con = sqlite3.connect("DB.db", check_same_thread=False)
@@ -24,6 +27,86 @@ cur = con.cursor()
 bot = Bot(token=api_token)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
+
+
+@dp.chat_join_request_handler()
+async def start1(update: types.ChatJoinRequest):
+    if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {update.from_user.id}").fetchall():
+        cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({update.from_user.id}, '{update.from_user.username}')")
+        con.commit()
+    if cur.execute(f"SELECT address FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0] is None:
+        await bot.send_message(chat_id=update.from_user.id, text="To join the group, connect your wallet (Tonkeeper or Tonhub) and send the application again", reply_markup=kb.Walletkb)
+    else:
+        address = cur.execute(f"SELECT address FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
+        url = f'https://tonapi.io/v2/accounts/{address}/nfts?limit=1000&offset=0&indirect_ownership=false'
+        try:
+            response = requests.get(url).json()['nft_items']
+        except:
+            await bot.send_message(chat_id=update.from_user.id, text="something went wrong, try again later...")
+            return
+        chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {update.chat.id}").fetchall()[0][0]
+        nfts = []
+        for i in cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall():
+            nfts.append(i[0])
+        for nft in response:
+            if nft['collection']['address'] in nfts:
+                await update.approve()
+                return
+        await bot.send_message(chat_id=update.from_user.id, text="You don't have the necessary NFT to join the group")
+        
+        
+        
+
+@dp.message_handler(text = 'Tonkeeper', state='*', chat_type=types.ChatType.PRIVATE)
+async def connect_wallet_tonkeeper(message: types.Message):
+    connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
+    is_connected = await connector.restore_connection()
+    
+    wallets_list = connector.get_wallets()
+
+    generated_url_tonkeeper = await connector.connect(wallets_list[0])
+    text = f'[Tonkeeper link]({generated_url_tonkeeper})'
+    msg = await bot.send_message(message.from_user.id, text, parse_mode='MarkdownV2')
+
+    flag = True
+    while flag:
+        await asyncio.sleep(1)
+        if connector.connected:
+            if connector.account.address:
+                flag = False
+                address = Address(connector.account.address).to_string(True, True, True)
+            break
+    
+    await msg.delete()
+    await bot.send_message(message.from_user.id, 'Your wallet has been successfully connect')
+    cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
+    con.commit()
+
+@dp.callback_query_handler(text = 'Tonhub', state='*', chat_type=types.ChatType.PRIVATE)
+async def connect_wallet_tonhub(message: types.Message):
+    connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
+    is_connected = await connector.restore_connection()
+    
+    wallets_list = connector.get_wallets()
+
+    generated_url_tonhub = await connector.connect(wallets_list[1])
+    text = f'[Tonhub link]({generated_url_tonhub})'
+    msg = await bot.send_message(message.from_user.id, text, parse_mode='MarkdownV2')
+    msg = await message.answer(f"Tonhub Link: {text}")
+
+    flag = True
+    while flag:
+        await asyncio.sleep(1)
+        if connector.connected:
+            if connector.account.address:
+                flag = False
+                address = Address(connector.account.address).to_string(True, True, True)
+            break
+    
+    await msg.delete()
+    await bot.send_message(message.from_user.id, 'Your wallet has been successfully connect')
+    cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
+    con.commit()
 
 @dp.message_handler(state='*', content_types=['new_chat_members'])
 async def update_chats(message: types.Message):
@@ -50,55 +133,28 @@ async def send_welcome(message: types.Message, state: FSMContext):
         await message.answer("Hi, I'm a bot that will help you set up access to chats using SBT", reply_markup=kb.UserKb)
     await state.finish()
 
-
-@dp.message_handler(commands=['reg'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
-async def reg_user(message: types.Message, state: FSMContext):
-    id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
-    chats = cur.execute(f"SELECT chat_id FROM Users WHERE id_tg == {message.from_user.id}").fetchall()
-    if id not in chats:
-        address = cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()
-        if address and address[0][0] != None:
-            cur.execute(f"INSERT INTO Users (id_tg, username, address, chat_id) VALUES ({message.from_user.id}, '{message.from_user.username}', '{address[0][0]}', {id})")
-            con.commit()
-        else:
-            cur.execute(f"INSERT INTO Users (id_tg, username, chat_id) VALUES ({message.from_user.id}, '{message.from_user.username}', {id})")
-            con.commit()
-
-@dp.message_handler(text="Check my SBT", state='*')
-async def check_sbt(message: types.Message, state: FSMContext):
-    address = cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0]
-    if address == None:
-        connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
-        is_connected = await connector.restore_connection()
-        
-        wallets_list = connector.get_wallets()
-
-        generated_url_tonkeep = await connector.connect(wallets_list[0])
-        generated_url_tonhub = "ok"
-        msg = await message.answer(f"To verify your SBT, you need to connect your wallet.\nTonkeeper Link:{generated_url_tonkeep}\nTonhub Link:{generated_url_tonhub}")
-
-        flag = True
-        while flag:
-            await asyncio.sleep(1)
-            if connector.connected:
-                if connector.account.address:
-                    flag = False
-                    address = Address(connector.account.address).to_string(True, True, True)
-                break
-        
-        await msg.delete()
-        cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
-        con.commit()
-
-@dp.message_handler(text="Add new SBT", state='*')
+@dp.message_handler(commands=['add_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_sbt(message: types.Message, state: FSMContext):
-    pass
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
+    
+    users = []
+    for adm in admins:
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall())
+    users.append(owner_id) 
+    
+    if message.from_user.id in users:
+        await message.answer('To add a new NFT for access, send colection address.\nReply for this message')
+        await States.AddNFT.set()
+    else: 
+        await message.answer("You don't have enough permission")
 
 @dp.message_handler(commands=['add_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_admin(message: types.Message, state: FSMContext):
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     if message.from_user.id == owner_id:
-        await message.answer('To add a new admin, send his username.\n(In order for a user to become an admin, he must launch this bot at least once)\nExample: "@username"\nReply for this message')
+        await message.answer('To add a new admin, send his username.\n(In order for a user to become an admin, he must registr)\nExample: "@username"\nReply for this message')
         await States.AddAdmin.set()
     else: 
         await message.answer("You don't have enough permission")
@@ -128,7 +184,6 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
     elif id:
 
         admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
-        print(admins_id)
         need_assign = -1
         for adm in admins_id:
             chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
@@ -144,9 +199,9 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         else: 
             await message.answer("This user is already an admin")
     else:
-        await message.answer("This user has never started a bot or incorrectly entered a username")
+        await message.answer("This user not registr or incorrectly entered a username")
 
-@dp.message_handler(state = States.RemoveAdmin)
+@dp.message_handler(state = States.RemoveAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_remove_admin(message: types.Message, state: FSMContext):
     if ('@' not in message.text):
         await message.answer("incorrectly entered a username")
@@ -161,9 +216,8 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
     if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner")
     elif id:
-        
+
         admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
-        print(admins_id)
         need_delete = -1
         for adm in admins_id:
             chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
@@ -179,9 +233,30 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
         else: 
             await message.answer("This user is not an admin")
     else:
-        await message.answer("This user has never started a bot or incorrectly entered a username")
+        await message.answer("This user not registr or incorrectly entered a username")
 
-@dp.message_handler(state = '*')
+@dp.message_handler(state = States.AddNFT, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def check_to_add_nft(message: types.Message, state: FSMContext):
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
+    
+    users = []
+    for adm in admins:
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall())
+    users.append(owner_id)
+    if message.from_user.id in users:
+        collection_address = message.text
+        if not cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}'").fetchall():
+            chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+            cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
+            con.commit()
+            await message.answer('Address successfully added')
+        else:
+            await message.answer('This address has already been added')
+
+
+@dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
 async def unknown_command(message: types.Message):
     await message.answer("unknown command")
 
