@@ -134,11 +134,11 @@ async def send_welcome(message: types.Message, state: FSMContext):
     await state.finish()
 
 @dp.message_handler(commands=['add_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
-async def add_sbt(message: types.Message, state: FSMContext):
+async def add_nft(message: types.Message, state: FSMContext):
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
-    print(admins)
+
     users = []
     for adm in admins:
         users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
@@ -147,6 +147,27 @@ async def add_sbt(message: types.Message, state: FSMContext):
     if message.from_user.id in users:
         await message.answer('To add a new NFT for access, send colection address.\nReply for this message')
         await States.AddNFT.set()
+    else: 
+        await message.answer("You don't have enough permission")
+
+@dp.message_handler(commands=['show_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def add_nft(message: types.Message, state: FSMContext):
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
+
+    users = []
+    for adm in admins:
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
+    users.append(owner_id) 
+    
+    if message.from_user.id in users:
+        nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
+        text = ''
+        for i in range(len(nfts)):
+            text += f'{i + 1}\)' + '`' + nfts[i][0] + '`' + '\n'
+        await message.answer(f'NFTs:\n{text}', parse_mode='MarkdownV2')
+        await state.finish()
     else: 
         await message.answer("You don't have enough permission")
 
