@@ -19,6 +19,7 @@ class States(StatesGroup):
     AddAdmin = State()
     RemoveAdmin = State()
     AddNFT = State() 
+    RemoveNFT = State()
 
 
 con = sqlite3.connect("DB.db", check_same_thread=False)
@@ -30,7 +31,7 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 
 @dp.chat_join_request_handler()
-async def start1(update: types.ChatJoinRequest):
+async def check_to_accept_user(update: types.ChatJoinRequest):
     if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {update.from_user.id}").fetchall():
         cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({update.from_user.id}, '{update.from_user.username}')")
         con.commit()
@@ -150,8 +151,25 @@ async def add_nft(message: types.Message, state: FSMContext):
     else: 
         await message.answer("You don't have enough permission")
 
+@dp.message_handler(commands=['remove_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def remove_nft(message: types.Message, state: FSMContext):
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
+
+    users = []
+    for adm in admins:
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
+    users.append(owner_id) 
+    
+    if message.from_user.id in users:
+        await message.answer('To remove NFT for access, send colection address.\nReply for this message')
+        await States.RemoveNFT.set()
+    else: 
+        await message.answer("You don't have enough permission")
+
 @dp.message_handler(commands=['show_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
-async def add_nft(message: types.Message, state: FSMContext):
+async def show_nft(message: types.Message, state: FSMContext):
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
@@ -255,6 +273,7 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
     for adm in admins:
         users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
     users.append(owner_id)
+
     if message.from_user.id in users:
         collection_address = message.text
         if not cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}'").fetchall():
@@ -265,6 +284,28 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
             await state.finish()
         else:
             await message.answer('This address has already been added')
+
+@dp.message_handler(state = States.RemoveNFT, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def check_to_remove_nft(message: types.Message, state: FSMContext):
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
+    
+    users = []
+    for adm in admins:
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
+    users.append(owner_id)
+
+    if message.from_user.id in users:
+        collection_address = message.text
+        if cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}'").fetchall():
+            chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+            cur.execute(f"DELETE FROM Passes WHERE chat_id == {chat_id} AND collection_address == '{collection_address}'")
+            con.commit()
+            await message.answer('Address successfully removed')
+            await state.finish()
+        else:
+            await message.answer('This address was not added')
 
 
 @dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
