@@ -138,10 +138,10 @@ async def add_sbt(message: types.Message, state: FSMContext):
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
-    
+    print(admins)
     users = []
     for adm in admins:
-        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall())
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
     users.append(owner_id) 
     
     if message.from_user.id in users:
@@ -154,7 +154,7 @@ async def add_sbt(message: types.Message, state: FSMContext):
 async def add_admin(message: types.Message, state: FSMContext):
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     if message.from_user.id == owner_id:
-        await message.answer('To add a new admin, send his username.\n(In order for a user to become an admin, he must registr)\nExample: "@username"\nReply for this message')
+        await message.answer('To add a new admin, send his username.\nExample: "@username"\nReply for this message')
         await States.AddAdmin.set()
     else: 
         await message.answer("You don't have enough permission")
@@ -177,22 +177,17 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
 
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
-    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}' AND chat_id == {chat_id}").fetchall()
+    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
+
+    if message.from_user.id != owner_id:
+        return
+
     if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner")
     elif id:
-
-        admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
-        need_assign = -1
-        for adm in admins_id:
-            chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
-            if message.chat.id == cur.execute(f"SELECT id_tg FROM Chats WHERE id == {chat_id}").fetchall()[0][0]:
-                need_assign = adm[0]
-                break
-
-        if need_assign == -1:
-            cur.execute(f"INSERT INTO Admins (id_users) VALUES ({id[0][0]})")
+        if not cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]} AND chat_id == {chat_id}").fetchall():
+            cur.execute(f"INSERT INTO Admins (id_users, chat_id) VALUES ({id[0][0]}, {chat_id})")
             con.commit()
             await message.answer("The user is assigned as an admin")
             await state.finish()
@@ -210,23 +205,17 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
 
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
-    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}' AND chat_id == {chat_id}").fetchall()
+    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()[0][0]
+
+    if message.from_user.id != owner_id:
+        return
 
     if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner")
     elif id:
-
-        admins_id = cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]}").fetchall()
-        need_delete = -1
-        for adm in admins_id:
-            chat_id = cur.execute(f"SELECT chat_id FROM Users WHERE id == {adm[0]}").fetchall()[0][0]
-            if message.chat.id == cur.execute(f"SELECT id_tg FROM Chats WHERE id == {chat_id}").fetchall()[0][0]:
-                need_delete = adm[0]
-                break
-
-        if need_delete != -1:
-            cur.execute(f"DELETE from Admins where id_users == {need_delete}")
+        if cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]} AND chat_id == {chat_id}").fetchall():
+            cur.execute(f"DELETE from Admins where id_users == {id[0][0]} AND chat_id == {chat_id}")
             con.commit()
             await message.answer("The user has been removed from the admin position")
             await state.finish()
@@ -243,7 +232,7 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
     
     users = []
     for adm in admins:
-        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall())
+        users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
     users.append(owner_id)
     if message.from_user.id in users:
         collection_address = message.text
@@ -252,6 +241,7 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
             cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
             con.commit()
             await message.answer('Address successfully added')
+            await state.finish()
         else:
             await message.answer('This address has already been added')
 
