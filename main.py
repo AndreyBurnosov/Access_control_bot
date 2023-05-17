@@ -13,7 +13,7 @@ from datetime import datetime
 from tonsdk.utils import Address
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
-from config import api_token
+from config import api_token, bot_id
 
 class States(StatesGroup):
     AddAdmin = State()
@@ -51,11 +51,12 @@ async def check_to_accept_user(update: types.ChatJoinRequest):
             nfts.append(i[0])
         for nft in response:
             if nft['collection']['address'] in nfts:
+                id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
+                cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
+                con.commit()
                 await update.approve()
                 return
         await bot.send_message(chat_id=update.from_user.id, text="You don't have the necessary NFT to join the group")
-        
-        
         
 
 @dp.message_handler(text = 'Tonkeeper', state='*', chat_type=types.ChatType.PRIVATE)
@@ -119,6 +120,27 @@ async def update_chats(message: types.Message):
                 owner_id = user['user']['id']
         cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
         con.commit()
+
+@dp.message_handler(state='*', content_types=['left_chat_member'])
+async def update_members(message: types.Message):
+    chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    print(message)
+    if message.left_chat_member.id == bot_id:
+        cur.execute(f"DELETE FROM Members WHERE chat_id == {chat_id}")
+        con.commit()
+        cur.execute(f"DELETE FROM Admins WHERE chat_id == {chat_id}")
+        con.commit()
+        cur.execute(f"DELETE FROM Passes WHERE chat_id == {chat_id}")
+        con.commit()
+        cur.execute(f"DELETE FROM Chats WHERE id_tg == {message.chat.id}")
+        con.commit()
+    elif not message.left_chat_member.is_bot:
+        user_id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {message.left_chat_member.id}").fetchall()[0][0]
+        cur.execute(f"DELETE FROM Admins WHERE id_users == {user_id} AND chat_id == {chat_id}")
+        con.commit()
+        cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
+        con.commit()
+    
     
 @dp.message_handler(commands=['start'], state='*', chat_type=types.ChatType.PRIVATE)
 async def send_welcome(message: types.Message, state: FSMContext):
