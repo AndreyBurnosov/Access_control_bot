@@ -98,7 +98,7 @@ async def connect_wallet_tonkeeper(message: types.Message):
     cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
     con.commit()
 
-@dp.callback_query_handler(text = 'Tonhub', state='*', chat_type=types.ChatType.PRIVATE)
+@dp.message_handler(text = 'Tonhub', state='*', chat_type=types.ChatType.PRIVATE)
 async def connect_wallet_tonhub(message: types.Message):
     connector = TonConnect(manifest_url='https://raw.githubusercontent.com/AndreyBur/Access_control_bot/master/pytonconnect-manifest.json')
     is_connected = await connector.restore_connection()
