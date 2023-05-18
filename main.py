@@ -13,6 +13,7 @@ from datetime import datetime
 from tonsdk.utils import Address
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import api_token, bot_id
 
 class States(StatesGroup):
@@ -28,6 +29,7 @@ cur = con.cursor()
 bot = Bot(token=api_token)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
+scheduler = AsyncIOScheduler()
 
 
 @dp.chat_join_request_handler()
@@ -124,7 +126,6 @@ async def update_chats(message: types.Message):
 @dp.message_handler(state='*', content_types=['left_chat_member'])
 async def update_members(message: types.Message):
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
-    print(message)
     if message.left_chat_member.id == bot_id:
         cur.execute(f"DELETE FROM Members WHERE chat_id == {chat_id}")
         con.commit()
@@ -329,10 +330,40 @@ async def check_to_remove_nft(message: types.Message, state: FSMContext):
         else:
             await message.answer('This address was not added')
 
+async def check_users_in_chats():
+    members = cur.execute(f"SELECT * FROM Members").fetchall()
+    for member in members:
+        address = cur.execute(f"SELECT address FROM Users WHERE id == {member[0]}").fetchall()[0][0]
+        url = f'https://tonapi.io/v2/accounts/{address}/nfts?limit=1000&offset=0&indirect_ownership=false'
+        try:
+            response = requests.get(url).json()['nft_items']
+        except:
+            continue
+        nfts = []
+        for i in cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {member[1]}").fetchall():
+            nfts.append(i[0])
+        flag = False
+        for nft in response:
+            if nft['collection']['address'] in nfts:
+                flag = True
+                break
+        if (flag):
+            continue
+        user_id = cur.execute(f"SELECT id_tg FROM Users WHERE id == {member[0]}").fetchall()[0][0]
+        chat_id = cur.execute(f"SELECT id_tg FROM Chats WHERE id == {member[1]}").fetchall()[0][0]
+        if await bot.ban_chat_member(chat_id, user_id):
+            await bot.unban_chat_member(chat_id, user_id)
+            cur.execute(f"DELETE FROM Admins WHERE id_users == {user_id} AND chat_id == {chat_id}")
+            con.commit()
+            cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
+            con.commit()
+                        
 
 @dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
 async def unknown_command(message: types.Message):
     await message.answer("unknown command")
 
 if __name__ == '__main__':
+    scheduler.add_job(check_users_in_chats, "interval", minute=10)
+    scheduler.start()
     executor.start_polling(dp, skip_updates=True)
