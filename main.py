@@ -75,7 +75,7 @@ async def connect_wallet_tonkeeper(message: types.Message):
 
     generated_url_tonkeeper = await connector.connect(wallets_list[0])
     urlkb = InlineKeyboardMarkup(row_width=1)
-    urlButton = InlineKeyboardButton(text='Open Tonkeeper', url=generated_url_tonkeeper)
+    urlButton = InlineKeyboardButton(text='Open Tonkeeper', url=generated_url_tonkeeper)        
     urlkb.add(urlButton)
     img = qrcode.make(generated_url_tonkeeper)
     path = f'image{random.randint(0, 100000)}.png'
@@ -240,13 +240,22 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
 
-    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
 
     if message.from_user.id != owner_id:
         return
+
+    for member in cur.execute(f"SELECT user_id FROM Members WHERE chat_id == '{chat_id}'").fetchall():
+        user = await bot.get_chat_member(message.chat.id, cur.execute(f"SELECT id_tg FROM Users WHERE id == {member[0]}").fetchall()[0][0])
+        if (user.user.username != cur.execute(f"SELECT username FROM Users WHERE id_tg == {user.user.id}").fetchall()[0][0]):
+            cur.execute(f"UPDATE Users SET username = '{user.user.username}' WHERE id_tg = {user.user.id}")
+            con.commit()
+
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
+    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
+    id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
 
     if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner❌")
