@@ -176,6 +176,7 @@ async def add_nft(message: types.Message, state: FSMContext):
         await States.AddNFT.set()
     else: 
         await message.answer("You don't have enough permission❌")
+        await message.delete()
 
 @dp.message_handler(commands=['remove_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_nft(message: types.Message, state: FSMContext):
@@ -193,6 +194,7 @@ async def remove_nft(message: types.Message, state: FSMContext):
         await States.RemoveNFT.set()
     else: 
         await message.answer("You don't have enough permission❌")
+        await message.delete()
 
 @dp.message_handler(commands=['show_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def show_nft(message: types.Message, state: FSMContext):
@@ -214,6 +216,7 @@ async def show_nft(message: types.Message, state: FSMContext):
         await state.finish()
     else: 
         await message.answer("You don't have enough permission❌")
+        await message.delete()
 
 @dp.message_handler(commands=['add_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_admin(message: types.Message, state: FSMContext):
@@ -223,6 +226,7 @@ async def add_admin(message: types.Message, state: FSMContext):
         await States.AddAdmin.set()
     else: 
         await message.answer("You don't have enough permission❌")
+        await message.delete()
         
 @dp.message_handler(commands=['remove_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_admin(message: types.Message, state: FSMContext):
@@ -232,6 +236,7 @@ async def remove_admin(message: types.Message, state: FSMContext):
         await States.RemoveAdmin.set()
     else: 
         await message.answer("You don't have enough permission❌")
+        await message.delete()
 
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
