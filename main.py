@@ -240,9 +240,8 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
 
+    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
-    id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
-    id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
 
     if message.from_user.id != owner_id:
         return
@@ -253,7 +252,6 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
             cur.execute(f"UPDATE Users SET username = '{user.user.username}' WHERE id_tg = {user.user.id}")
             con.commit()
 
-    owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     id = cur.execute(f"SELECT id FROM Users WHERE username == '{username}'").fetchall()
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
 
@@ -284,6 +282,12 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
 
     if message.from_user.id != owner_id:
         return
+
+    for member in cur.execute(f"SELECT user_id FROM Members WHERE chat_id == '{chat_id}'").fetchall():
+        user = await bot.get_chat_member(message.chat.id, cur.execute(f"SELECT id_tg FROM Users WHERE id == {member[0]}").fetchall()[0][0])
+        if (user.user.username != cur.execute(f"SELECT username FROM Users WHERE id_tg == {user.user.id}").fetchall()[0][0]):
+            cur.execute(f"UPDATE Users SET username = '{user.user.username}' WHERE id_tg = {user.user.id}")
+            con.commit()
 
     if id_tg and id_tg == owner_id:
         await message.answer("This user is the owner❌")
@@ -369,7 +373,10 @@ async def check_users_in_chats():
             con.commit()
             cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
             con.commit()
-                        
+
+@dp.message_handler(commands = ['help'], state = '*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP, types.ChatType.PRIVATE])
+async def help_instructions(message: types.Message):
+    await message.answer("If you have any questions about the work of the bot or have any questions, write here: @Andreyburnosov\nOr read the readme here:[Access control bot](https://github.com/AndreyBur/Access_control_bot)", parse_mode='MarkdownV2')
 
 @dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
 async def unknown_command(message: types.Message):
