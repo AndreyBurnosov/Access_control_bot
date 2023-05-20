@@ -1,0 +1,5 @@
+aiogram>=2.25.1
+pytonconnect>=0.1.1
+qrcode>=7.4.2
+requests>=2.28.2
+tonsdk>=1.0.12
