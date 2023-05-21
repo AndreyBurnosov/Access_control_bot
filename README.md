@@ -12,7 +12,7 @@ The Access Control Bot is a specialized bot that utilizes NTFs (Non Fungible Tok
 
 3.  Once created, BotFather will provide you with a unique token. This token is crucial as it allows your bot to communicate with the Telegram API.
 
-4.  Copy this token and paste it into the corresponding field in the [`config.py`](https://github.com/AndreyBur/Access_control_bot/blob/master/config.py) file found in your cloned repository.
+4.  Copy this token and paste it into the corresponding field in the [`config.py`](https://github.com/AndreyBurnosov/Access_control_bot/blob/master/config.py) file found in your cloned repository.
 
 5.  Additionally, insert your bot's id in the respective field in the same file with [**ID BOT**](https://t.me/myidbot) for example.
 
@@ -40,7 +40,7 @@ To launch your bot, follow these steps:
 1.  Clone the repository:
 
 ```bash
-git clone https://github.com/AndreyBur/Access_control_bot
+git clone https://github.com/AndreyBurnosov/Access_control_bot
 ```
 
 2.  Navigate to the cloned directory and download the required libraries. These libraries are necessary for the bot to function correctly:
@@ -55,5 +55,5 @@ pip install -r requiments.txt
 
 ## 📌 References
 
-- The bot was developed by [Andrew Burnosov](https://github.com/AndreyBur) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
+- The bot was developed by [Andrew Burnosov](https://github.com/AndreyBurnosov) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
 - This development was part of the Footsteps project under TON Footsteps. More details can be found in footsteps [#215](https://github.com/ton-society/ton-footsteps/issues/215).
