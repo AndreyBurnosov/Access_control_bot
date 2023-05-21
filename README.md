@@ -1,44 +1,59 @@
-# How to run Access control bot
+# Guide to Running the Access Control Bot
 
 ## 👋 Introduction
 
-This bot will help you set up access to your group via NFT.
+The Access Control Bit is a specialized boat that utilizes Ntfs (Non Fungible Tokens) to manage access to your Telegram group. This comfortable solution allows you to control who has access to your group and when, with Ntfs as unique, non-transferable identifiers for each member.
 
 ## 🤖 creating a bot
 
-Create a bot in [BotFather](https://t.me/BotFather), then take the token and paste it into the appropriate field in the file [config.py](https://github.com/AndreyBur/Access_control_bot/blob/master/config_example.py) and also insert your bot's id in the corresponding field.
+1.  Visit [BotFather](https://t.me/BotFather) on Telegram.
+
+2.  Follow the instructions to create a new bot.
+
+3.  Once created, BotFather will provide you with a unique token. This token is crucial as it allows your bot to communicate with the Telegram API.
+
+4.  Copy this token and paste it into the corresponding field in the config.py file found in your cloned repository.
+
+5.  Additionally, insert your bot's id in the respective field in the same file.
 
 ### ⚙️ Setting up the bot
 
-Set up in [BotFather](https://t.me/BotFather) > `Edit Bot` > `Edit Commands` and we write this:
+To set up your bot, you need to define its commands. Here is how you can do it:
 
-`add_admin` - add an admin to manage NFT
-`remove_admin` - remove admin
-`add_nft` - add an NFT for access to the group
-`remove_nft` - remove NFT
-`show_nft` - show all the NFT for access to this group
-`help` - my telegram contacts if you have any problems with bot
+1.  Go back to BotFather.
+
+2.  Select your bot and choose Edit Bot > Edit Commands.
+
+3.  Set up the following commands:
+
+    - `add_admin` - This command will allow you to add a new administrator who will have the authority to manage NFTs.
+    - `remove_admin` - This command allows you to remove an existing administrator.
+    - `add_nft` - Use this command to add a new NFT, which will grant access to your group.
+    - `remove_nft` - This command removes an existing NFT.
+    - `show_nft` - Use this command to display a list of all the NFTs that can grant access to your group.
+    - `help` - This command will provide contact information for Telegram support if there are issues with the bot.
 
 ## 🖥 Running Access control bot
 
-1.  Before launching this bot, you need to clone the repository:
+To launch your bot, follow these steps:
+
+1.  Clone the repository:
 
 ```bash
 git clone https://github.com/AndreyBur/Access_control_bot
 ```
 
-2.  Then download all the necessary libraries:
+2.  Navigate to the cloned directory and download the required libraries. These libraries are necessary for the bot to function correctly:
 
 ```bash
 pip install -r requiments.txt
 ```
 
-3.  Сreate a group and add a bot there and promote him to admin.
+3.  Create a new group on Telegram, add the bot to this group, and promote it to an admin. This step is important because the bot needs administrative permissions to manage group access.
 
-#### That's all, you can run the bot.
+#### With these steps, your Access Control Bot is ready to run.
 
 ## 📌 References
 
-- Author: [Andrew Burnosov](https://github.com/AndreyBur) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
-
-Developed for footsteps Developed for footsteps [#215](https://github.com/ton-society/ton-footsteps/issues/215) from TON Footsteps.
+- The bot was developed by [Andrew Burnosov](https://github.com/AndreyBur) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
+- This development was part of the Footsteps project under TON Footsteps. More details can be found in footsteps [#215](https://github.com/ton-society/ton-footsteps/issues/215).
