@@ -2,9 +2,9 @@
 
 ## 👋 Introduction
 
-The Access Control Bit is a specialized boat that utilizes Ntfs (Non Fungible Tokens) to manage access to your Telegram group. This comfortable solution allows you to control who has access to your group and when, with Ntfs as unique, non-transferable identifiers for each member.
+The Access Control Bot is a specialized bot that utilizes NTFs (Non Fungible Tokens) or SBTs to manage access to your Telegram groups. This comfortable solution allows you to control who has access to your groups and when, with NFTs/SBTs as unique, non-transferable identifiers for each member.
 
-## 🤖 creating a bot
+## 🤖 Creating a bot
 
 1.  Visit [BotFather](https://t.me/BotFather) on Telegram.
 
@@ -12,17 +12,17 @@ The Access Control Bit is a specialized boat that utilizes Ntfs (Non Fungible To
 
 3.  Once created, BotFather will provide you with a unique token. This token is crucial as it allows your bot to communicate with the Telegram API.
 
-4.  Copy this token and paste it into the corresponding field in the config.py file found in your cloned repository.
+4.  Copy this token and paste it into the corresponding field in the [`config.py`](https://github.com/AndreyBurnosov/Access_control_bot/blob/master/config.py) file found in your cloned repository.
 
-5.  Additionally, insert your bot's id in the respective field in the same file.
+5.  Additionally, insert your bot's id in the respective field in the same file with [**ID BOT**](https://t.me/myidbot) for example.
 
 ### ⚙️ Setting up the bot
 
-To set up your bot, you need to define its commands. Here is how you can do it:
+To set up your bot, you need to define these commands. Here is how you can do it:
 
-1.  Go back to BotFather.
+1.  Go back to [BotFather](https://t.me/BotFather).
 
-2.  Select your bot and choose Edit Bot > Edit Commands.
+2.  Select your bot and choose buttons in this order: `Edit Bot` > `Edit Commands`.
 
 3.  Set up the following commands:
 
@@ -41,7 +41,7 @@ To launch your bot, follow these steps:
 1.  Clone the repository:
 
 ```bash
-git clone https://github.com/AndreyBur/Access_control_bot
+git clone https://github.com/AndreyBurnosov/Access_control_bot
 ```
 
 2.  Navigate to the cloned directory and download the required libraries. These libraries are necessary for the bot to function correctly:
@@ -50,11 +50,11 @@ git clone https://github.com/AndreyBur/Access_control_bot
 pip install -r requiments.txt
 ```
 
-3.  Create a new group on Telegram, add the bot to this group, and promote it to an admin. This step is important because the bot needs administrative permissions to manage group access.
+3.  Create a new group on Telegram, add the bot to this group, and promote it to an admin. This step is important, because the bot needs administrative permissions to manage group access.
 
 #### With these steps, your Access Control Bot is ready to run.
 
 ## 📌 References
 
-- The bot was developed by [Andrew Burnosov](https://github.com/AndreyBur) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
+- The bot was developed by [Andrew Burnosov](https://github.com/AndreyBurnosov) (TG: [@AndrewBurnosov](https://t.me/AndreyBurnosov))
 - This development was part of the Footsteps project under TON Footsteps. More details can be found in footsteps [#215](https://github.com/ton-society/ton-footsteps/issues/215).
