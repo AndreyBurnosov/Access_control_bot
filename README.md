@@ -31,6 +31,7 @@ To set up your bot, you need to define its commands. Here is how you can do it:
     - `add_nft` - Use this command to add a new NFT, which will grant access to your group.
     - `remove_nft` - This command removes an existing NFT.
     - `show_nft` - Use this command to display a list of all the NFTs that can grant access to your group.
+    - `reg` - This program will register users who were already in the group before being added to the bot.
     - `help` - This command will provide contact information for Telegram support if there are issues with the bot.
 
 ## 🖥 Running Access control bot

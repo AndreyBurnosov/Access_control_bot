@@ -243,7 +243,11 @@ async def remove_admin(message: types.Message, state: FSMContext):
     if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {message.from_user.id}").fetchall():
         cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({message.from_user.id}, '{message.from_user.username}')")
         con.commit()
+        await message.answer('You have successfully registered✅')
+        if cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0] is None:
+            await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
+
 
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
