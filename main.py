@@ -238,6 +238,13 @@ async def remove_admin(message: types.Message, state: FSMContext):
         await message.answer("You don't have enough permission❌")
         await message.delete()
 
+@dp.message_handler(commands=['reg'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
+async def remove_admin(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {message.from_user.id}").fetchall():
+        cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({message.from_user.id}, '{message.from_user.username}')")
+        con.commit()
+    await message.delete()
+
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
     if ('@' not in message.text):
