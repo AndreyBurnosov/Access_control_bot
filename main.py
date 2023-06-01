@@ -58,7 +58,6 @@ async def check_to_accept_user(update: types.ChatJoinRequest):
             nfts.append(i[0])
         for nft in response:
             try:
-                print(Address(nft['collection']['address']).to_string(True, True, True))
                 if Address(nft['collection']['address']).to_string(True, True, True) in nfts:
                     id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
                     cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
