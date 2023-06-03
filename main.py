@@ -335,6 +335,17 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
     if message.from_user.id in users:
         collection_address = message.text
         if not cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}'").fetchall():
+            url = f'https://tonapi.io/v2/nfts/collections/{collection_address}'
+            try:
+                response = requests.get(url).json()
+            except:
+                await message.answer("something went wrong, try again later...")
+                await state.finish()
+                return
+            if 'error' in response:
+                await message.answer('Invalid or non-existent address❌')
+                await state.finish()
+                return
             chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
             cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
             con.commit()
