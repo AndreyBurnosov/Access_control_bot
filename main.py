@@ -251,9 +251,16 @@ async def remove_admin(message: types.Message, state: FSMContext):
             await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
 
+@dp.message_handler(commands = ['help'], state = '*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP, types.ChatType.PRIVATE])
+async def help_instructions(message: types.Message, state: FSMContext):
+    await message.answer("If you have any questions about the work of the bot or have any questions, write here: @Andreyburnosov\nOr read the readme here:[Access control bot](https://github.com/AndreyBur/Access_control_bot)", parse_mode='MarkdownV2')
+    await state.finish()
 
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
+    if message['reply_to_message'] is None or not (message['reply_to_message']['from']['id'] == bot_id):
+        return
+    await state.finish()
     if ('@' not in message.text):
         await message.answer("incorrectly entered a username❌")
         return
@@ -281,7 +288,6 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
             cur.execute(f"INSERT INTO Admins (id_users, chat_id) VALUES ({id[0][0]}, {chat_id})")
             con.commit()
             await message.answer("The user is assigned as an admin✅")
-            await state.finish()
         else: 
             await message.answer("This user is already an admin⚠️")
     else:
@@ -289,6 +295,9 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state = States.RemoveAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_remove_admin(message: types.Message, state: FSMContext):
+    if message['reply_to_message'] is None or not (message['reply_to_message']['from']['id'] == bot_id):
+        return
+    await state.finish()
     if ('@' not in message.text):
         await message.answer("incorrectly entered a username❌")
         return
@@ -315,7 +324,6 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
             cur.execute(f"DELETE from Admins where id_users == {id[0][0]} AND chat_id == {chat_id}")
             con.commit()
             await message.answer("The user has been removed from the admin position✅")
-            await state.finish()
         else: 
             await message.answer("This user is not an admin⚠️")
     else:
@@ -323,10 +331,13 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state = States.AddNFT, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_nft(message: types.Message, state: FSMContext):
+    if message['reply_to_message'] is None or not (message['reply_to_message']['from']['id'] == bot_id):
+        return
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
-    
+    await state.finish()
+
     users = []
     for adm in admins:
         users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
@@ -340,26 +351,25 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
                 response = requests.get(url).json()
             except:
                 await message.answer("something went wrong, try again later...")
-                await state.finish()
                 return
             if 'error' in response:
                 await message.answer('Invalid or non-existent address❌')
-                await state.finish()
                 return
             chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
             cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
             con.commit()
-            await message.answer('Address successfully added✅')
-            await state.finish()
         else:
             await message.answer('This address has already been added⚠️')
 
 @dp.message_handler(state = States.RemoveNFT, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_remove_nft(message: types.Message, state: FSMContext):
+    if message['reply_to_message'] is None or not (message['reply_to_message']['from']['id'] == bot_id):
+        return
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
-    
+    await state.finish()
+
     users = []
     for adm in admins:
         users.append(cur.execute(f"SELECT id_tg FROM Users WHERE id == {adm[0]}").fetchall()[0][0])
@@ -372,7 +382,6 @@ async def check_to_remove_nft(message: types.Message, state: FSMContext):
             cur.execute(f"DELETE FROM Passes WHERE chat_id == {chat_id} AND collection_address == '{collection_address}'")
             con.commit()
             await message.answer('Address successfully removed✅')
-            await state.finish()
         else:
             await message.answer('This address was not added⚠️')
 
@@ -403,10 +412,6 @@ async def check_users_in_chats():
             con.commit()
             cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
             con.commit()
-
-@dp.message_handler(commands = ['help'], state = '*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP, types.ChatType.PRIVATE])
-async def help_instructions(message: types.Message):
-    await message.answer("If you have any questions about the work of the bot or have any questions, write here: @Andreyburnosov\nOr read the readme here:[Access control bot](https://github.com/AndreyBur/Access_control_bot)", parse_mode='MarkdownV2')
 
 @dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
 async def unknown_command(message: types.Message):
