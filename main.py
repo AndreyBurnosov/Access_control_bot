@@ -46,27 +46,25 @@ async def check_to_accept_user(update: types.ChatJoinRequest):
         await bot.send_message(chat_id=update.from_user.id, text="To join the group, connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     else:
         address = cur.execute(f"SELECT address FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
-        url = f'https://tonapi.io/v2/accounts/{address}/nfts?limit=1000&offset=0&indirect_ownership=false'
-        try:
-            response = requests.get(url).json()['nft_items']
-        except:
-            await bot.send_message(chat_id=update.from_user.id, text="something went wrong, try again later...")
-            return
         chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {update.chat.id}").fetchall()[0][0]
-        nfts = []
-        for i in cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall():
-            nfts.append(i[0])
-        for nft in response:
+        i = 0
+        nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
+        while i < len(nfts):
+            url = f'https://tonapi.io/v2/accounts/{address}/nfts?collection={nfts[i]}&limit=1000&offset=0&indirect_ownership=false'
             try:
-                if Address(nft['collection']['address']).to_string(True, True, True) in nfts:
-                    id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
-                    cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
-                    con.commit()
-                    await update.approve()
-                    return
+                response = requests.get(url).json()
             except:
                 continue
+            if response:
+                id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {update.from_user.id}").fetchall()[0][0]
+                cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
+                con.commit()
+                await update.approve()
+                return
+            else:
+                i += 1
         await bot.send_message(chat_id=update.from_user.id, text="You don't have the necessary NFT to join the group😢")
+        
         
 
 @dp.message_handler(text = 'Tonkeeper', state='*', chat_type=types.ChatType.PRIVATE)
@@ -358,6 +356,7 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
             chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
             cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
             con.commit()
+            await message.answer('NFT successfully added✅')
         else:
             await message.answer('This address has already been added⚠️')
 
@@ -389,21 +388,19 @@ async def check_users_in_chats():
     members = cur.execute(f"SELECT * FROM Members").fetchall()
     for member in members:
         address = cur.execute(f"SELECT address FROM Users WHERE id == {member[0]}").fetchall()[0][0]
-        url = f'https://tonapi.io/v2/accounts/{address}/nfts?limit=1000&offset=0&indirect_ownership=false'
-        try:
-            response = requests.get(url).json()['nft_items']
-        except:
-            continue
-        nfts = []
-        for i in cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {member[1]}").fetchall():
-            nfts.append(i[0])
-        flag = False
-        for nft in response:
-            if nft['collection']['address'] in nfts:
-                flag = True
-                break
-        if (flag):
-            continue
+        chat_id = member[1]
+        i = 0
+        nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
+        while i < len(nfts):
+            url = f'https://tonapi.io/v2/accounts/{address}/nfts?collection={nfts[i]}&limit=1000&offset=0&indirect_ownership=false'
+            try:
+                response = requests.get(url).json()
+            except:
+                continue
+            if response:
+                return
+            else:
+                i += 1
         user_id = cur.execute(f"SELECT id_tg FROM Users WHERE id == {member[0]}").fetchall()[0][0]
         chat_id = cur.execute(f"SELECT id_tg FROM Chats WHERE id == {member[1]}").fetchall()[0][0]
         if await bot.ban_chat_member(chat_id, user_id):
@@ -418,6 +415,6 @@ async def unknown_command(message: types.Message):
     await message.answer("unknown command⚠️")
 
 if __name__ == '__main__':
-    scheduler.add_job(check_users_in_chats, "interval", minutes=10)
+    scheduler.add_job(check_users_in_chats, "interval", minutes=1)
     scheduler.start()
     executor.start_polling(dp, skip_updates=True)
