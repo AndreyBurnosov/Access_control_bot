@@ -415,6 +415,6 @@ async def unknown_command(message: types.Message):
     await message.answer("unknown command⚠️")
 
 if __name__ == '__main__':
-    scheduler.add_job(check_users_in_chats, "interval", minutes=1)
+    scheduler.add_job(check_users_in_chats, "interval", minutes=10)
     scheduler.start()
     executor.start_polling(dp, skip_updates=True)
