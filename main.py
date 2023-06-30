@@ -127,7 +127,7 @@ async def connect_wallet_tonhub(message: types.Message):
             break
     
     await msg.delete()
-    await bot.send_message(message.from_user.id, 'Your wallet has been successfully connect.👌\nSend the application again🔄')
+    await bot.send_message(message.from_user.id, 'Your wallet has been successfully connect.👌\nSend the application again 🔄')
     cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
     con.commit()
 
@@ -176,7 +176,7 @@ async def add_nft(message: types.Message, state: FSMContext):
         await message.answer('To add a new NFT for access, send colection address.\n❗️Reply for this message❗️')
         await States.AddNFT.set()
     else: 
-        await message.answer("You don't have enough permission❌")
+        await message.answer("You don't have enough permission ❌")
         await message.delete()
 
 @dp.message_handler(commands=['remove_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -194,7 +194,7 @@ async def remove_nft(message: types.Message, state: FSMContext):
         await message.answer('To remove NFT for access, send colection address.\n❗️Reply for this message❗️')
         await States.RemoveNFT.set()
     else: 
-        await message.answer("You don't have enough permission❌")
+        await message.answer("You don't have enough permission ❌")
         await message.delete()
 
 @dp.message_handler(commands=['show_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -212,11 +212,16 @@ async def show_nft(message: types.Message, state: FSMContext):
         nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
         text = ''
         for i in range(len(nfts)):
-            text += f'{i + 1}\)' + '`' + nfts[i][0] + '`' + '\n'
-        await message.answer(f'NFTs:\n{text}', parse_mode='MarkdownV2')
+            url = f'https://tonapi.io/v2/nfts/collections/{nfts[i][0]}'
+            response = requests.get(url).json()
+            name = response['metadata']['name']
+            link = f'https://tonscan.org/nft/{nfts[i][0]}'
+            text += f'{i + 1}\) ' + '*' + '[' + name + ']' + '(' + link + ') ' + '*' + '`' + nfts[i][0] + '`' + '\n\n'
+        
+        await message.answer(f'List of NFTs Providing Users Access:\n\n{text}', parse_mode='MarkdownV2', disable_web_page_preview=True)
         await state.finish()
     else: 
-        await message.answer("You don't have enough permission❌")
+        await message.answer("You don't have enough permission ❌")
         await message.delete()
 
 @dp.message_handler(commands=['add_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -226,7 +231,7 @@ async def add_admin(message: types.Message, state: FSMContext):
         await message.answer('To add a new admin, send his username.\n⚠️Example: "@username"\n❗️Reply for this message❗️')
         await States.AddAdmin.set()
     else: 
-        await message.answer("You don't have enough permission❌")
+        await message.answer("You don't have enough permission ❌")
         await message.delete()
         
 @dp.message_handler(commands=['remove_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -236,7 +241,7 @@ async def remove_admin(message: types.Message, state: FSMContext):
         await message.answer('To remove admin, send his username.\n⚠️Example: "@username"\n❗️Reply for this message❗️')
         await States.RemoveAdmin.set()
     else: 
-        await message.answer("You don't have enough permission❌")
+        await message.answer("You don't have enough permission ❌")
         await message.delete()
 
 @dp.message_handler(commands=['reg'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -260,7 +265,7 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         return
     await state.finish()
     if ('@' not in message.text):
-        await message.answer("incorrectly entered a username❌")
+        await message.answer("incorrectly entered a username ❌")
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
 
@@ -280,16 +285,16 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
     id_tg = cur.execute(f"SELECT id_tg FROM Users WHERE username == '{username}'").fetchall()
 
     if id_tg and id_tg == owner_id:
-        await message.answer("This user is the owner❌")
+        await message.answer("This user is the owner ❌")
     elif id:
         if not cur.execute(f"SELECT id_users FROM Admins WHERE id_users == {id[0][0]} AND chat_id == {chat_id}").fetchall():
             cur.execute(f"INSERT INTO Admins (id_users, chat_id) VALUES ({id[0][0]}, {chat_id})")
             con.commit()
-            await message.answer("The user is assigned as an admin✅")
+            await message.answer("The user is assigned as an admin ✅")
         else: 
             await message.answer("This user is already an admin⚠️")
     else:
-        await message.answer("This user not registr or incorrectly entered a username❌")
+        await message.answer("This user not registr or incorrectly entered a username ❌")
 
 @dp.message_handler(state = States.RemoveAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_remove_admin(message: types.Message, state: FSMContext):
@@ -297,7 +302,7 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
         return
     await state.finish()
     if ('@' not in message.text):
-        await message.answer("incorrectly entered a username❌")
+        await message.answer("incorrectly entered a username ❌")
         return
     username = re.search(r'@(\w+)', message.text).string[1::]
 
@@ -325,7 +330,7 @@ async def check_to_remove_admin(message: types.Message, state: FSMContext):
         else: 
             await message.answer("This user is not an admin⚠️")
     else:
-        await message.answer("This user not registr or incorrectly entered a username❌")
+        await message.answer("This user not registr or incorrectly entered a username ❌")
 
 @dp.message_handler(state = States.AddNFT, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_nft(message: types.Message, state: FSMContext):
@@ -351,12 +356,12 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
                 await message.answer("something went wrong, try again later...")
                 return
             if 'error' in response:
-                await message.answer('Invalid or non-existent address❌')
+                await message.answer('Invalid or non-existent address ❌')
                 return
             chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
             cur.execute(f"INSERT INTO Passes (chat_id, collection_address) VALUES ({chat_id}, '{collection_address}')")
             con.commit()
-            await message.answer('NFT successfully added✅')
+            await message.answer('NFT successfully added ✅')
         else:
             await message.answer('This address has already been added⚠️')
 
@@ -380,7 +385,7 @@ async def check_to_remove_nft(message: types.Message, state: FSMContext):
             chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
             cur.execute(f"DELETE FROM Passes WHERE chat_id == {chat_id} AND collection_address == '{collection_address}'")
             con.commit()
-            await message.answer('Address successfully removed✅')
+            await message.answer('Address successfully removed ✅')
         else:
             await message.answer('This address was not added⚠️')
 
