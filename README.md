@@ -34,6 +34,26 @@ To set up your bot, you need to define these commands. Here is how you can do it
     - `reg` - This program will register users who were already in the group before being added to the bot.
     - `help` - This command will provide contact information for Telegram support if there are issues with the bot.
 
+## 💬 Setting up the group
+
+1.  **Create a Private Group:** To create a private group in Telegram, click on the pencil icon in the lower right corner, then select "New Group". When prompted to assign a name to the group and add members, only assign the name and skip adding any members at this stage.
+
+2.  **Access Group Settings:** After creating the group, tap on the group name at the top of the screen. This action will take you to the group settings.
+
+3.  **Create an Invitation Link:** Within the group settings, select the option labeled "Add Members". From the following options, choose "Invite to Group via Link", then proceed to "Manage Invite Links", and finally select "Create a New Link". This will allow you to generate a unique invitation link for your group.
+
+4.  **Configure the Invitation Link:** Ensure to enable the "Request Admin Approval" feature. You can adjust the remaining settings according to your preferences.
+
+#### Remember that now you need to use this link to access your group
+
+## 🏁 Final steps
+
+1.  Add a bot to your group! It's as simple as inviting a new member. Find the bot by its username and add it.
+
+2.  Then make sure that you have given the bot the necessary permissions to perform its tasks. You can do this by assigning the bot the administrator role in your group settings.
+
+3.  Write the `/add_nft` command in the group and reply to the bot's message with the address of the collection.
+
 ## 🖥 Running Access control bot
 
 To launch your bot, follow these steps:
