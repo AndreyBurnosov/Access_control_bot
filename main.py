@@ -19,6 +19,7 @@ from tonsdk.utils import Address
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from support import build_bd
 from config import api_token, bot_id
 
 class States(StatesGroup):
@@ -30,6 +31,8 @@ class States(StatesGroup):
 
 con = sqlite3.connect("DB.db", check_same_thread=False)
 cur = con.cursor()
+
+build_bd(cur, con)
 
 bot = Bot(token=api_token)
 dp = Dispatcher(bot, storage=MemoryStorage())
