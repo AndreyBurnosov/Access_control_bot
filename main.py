@@ -210,6 +210,10 @@ async def show_nft(message: types.Message, state: FSMContext):
     
     if message.from_user.id in users:
         nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
+        if not nfts:
+            await message.answer(f'There are no valid passes in this group❗️')
+            await state.finish()
+            return
         text = ''
         for i in range(len(nfts)):
             url = f'https://tonapi.io/v2/nfts/collections/{nfts[i][0]}'
@@ -254,11 +258,6 @@ async def remove_admin(message: types.Message, state: FSMContext):
             await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
 
-@dp.message_handler(commands = ['help'], state = '*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP, types.ChatType.PRIVATE])
-async def help_instructions(message: types.Message, state: FSMContext):
-    await message.answer("If you have any questions about the work of the bot or have any questions, write here: @Andreyburnosov\nOr read the readme here:[Access control bot](https://github.com/AndreyBur/Access_control_bot)", parse_mode='MarkdownV2')
-    await state.finish()
-
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_add_admin(message: types.Message, state: FSMContext):
     if message['reply_to_message'] is None or not (message['reply_to_message']['from']['id'] == bot_id):
@@ -294,7 +293,7 @@ async def check_to_add_admin(message: types.Message, state: FSMContext):
         else: 
             await message.answer("This user is already an admin⚠️")
     else:
-        await message.answer("This user not registr or incorrectly entered a username ❌")
+        await message.answer("This user not registered (he can try write /reg) or incorrectly entered a username ❌")
 
 @dp.message_handler(state = States.RemoveAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def check_to_remove_admin(message: types.Message, state: FSMContext):
@@ -414,6 +413,14 @@ async def check_users_in_chats():
             con.commit()
             cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
             con.commit()
+
+@dp.message_handler(state = '*', commands=['start'], chat_type=types.ChatType.PRIVATE)
+async def start_command(message: types.Message):
+    await message.answer("The Access Control Bot is a specialized bot that utilizes NTFs (Non Fungible Tokens) or SBTs to manage access to your Telegram groups. This comfortable solution allows you to control who has access to your groups and when, with NFTs/SBTs as unique, non-transferable identifiers for each member.")
+
+@dp.message_handler(commands = ['help'], state = '*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP, types.ChatType.PRIVATE])
+async def help_instructions(message: types.Message, state: FSMContext):
+    await message.answer("1\) add the bot to the group\n2\)  the bot administrator rights\n3\) add collections to access the chat\nyour bot has started working😉\n\nIf you have any questions about the work of the bot or have any questions, write here: @Andreyburnosov\nOr read the readme here:[Access control bot](https://github.com/AndreyBur/Access_control_bot)", parse_mode='MarkdownV2', disable_web_page_preview=True)
 
 @dp.message_handler(state = '*', chat_type=types.ChatType.PRIVATE)
 async def unknown_command(message: types.Message):
