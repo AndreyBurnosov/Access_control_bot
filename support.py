@@ -19,12 +19,12 @@ def build_bd(cur, con):
         "chat_id"	INTEGER
     )''')
 
-    cur.execute('''CREATE TABLE "Passes" (
+    cur.execute('''CREATE TABLE IF NOT EXISTS "Passes" (
         "chat_id"	INTEGER,
         "collection_address"	TEXT
     )''')
 
-    cur.execute('''CREATE TABLE "Users" (
+    cur.execute('''CREATE TABLE IF NOT EXISTS "Users" (
         "id"	INTEGER,
         "id_tg"	INTEGER,
         "username"	TEXT,
