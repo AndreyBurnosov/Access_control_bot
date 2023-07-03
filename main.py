@@ -256,13 +256,13 @@ async def remove_admin(message: types.Message, state: FSMContext):
     if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {message.from_user.id}").fetchall():
         cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({message.from_user.id}, '{message.from_user.username}')")
         con.commit()
-        chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {update.chat.id}").fetchall()[0][0]
+        chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
         id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0]
         cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
         con.commit()
         await message.answer('You have successfully registered ✅')
-        if cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0] is None:
-            await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
+    if cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0] is None:
+        await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
 
 @dp.message_handler(state = States.AddAdmin, chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
@@ -354,7 +354,7 @@ async def check_to_add_nft(message: types.Message, state: FSMContext):
 
     if message.from_user.id in users:
         collection_address = message.text
-        if not cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}'").fetchall():
+        if not cur.execute(f"SELECT chat_id FROM Passes WHERE collection_address == '{collection_address}' AND chat_id == {chat_id}").fetchall():
             url = f'https://tonapi.io/v2/nfts/collections/{collection_address}'
             try:
                 response = requests.get(url).json()
