@@ -260,7 +260,7 @@ async def remove_admin(message: types.Message, state: FSMContext):
         id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0]
         cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
         con.commit()
-        await message.answer('You have successfully registered ✅')
+        await message.answer(f'@{message.from_user.username} have successfully registered ✅')
     if cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0] is None:
         await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
@@ -399,6 +399,16 @@ async def check_users_in_chats():
     members = cur.execute(f"SELECT * FROM Members").fetchall()
     for member in members:
         address = cur.execute(f"SELECT address FROM Users WHERE id == {member[0]}").fetchall()[0][0]
+        if address is None:
+            user_id = cur.execute(f"SELECT id_tg FROM Users WHERE id == {member[0]}").fetchall()[0][0]
+            chat_id = cur.execute(f"SELECT id_tg FROM Chats WHERE id == {member[1]}").fetchall()[0][0]
+            if await bot.ban_chat_member(chat_id, user_id):
+                await bot.unban_chat_member(chat_id, user_id)
+                cur.execute(f"DELETE FROM Admins WHERE id_users == {user_id} AND chat_id == {chat_id}")
+                con.commit()
+                cur.execute(f"DELETE FROM Members WHERE user_id == {user_id} AND chat_id == {chat_id}")
+                con.commit()
+            continue
         chat_id = member[1]
         i = 0
         nfts = cur.execute(f"SELECT collection_address FROM Passes WHERE chat_id == {chat_id}").fetchall()
