@@ -166,6 +166,15 @@ async def update_members(message: types.Message):
 
 @dp.message_handler(commands=['add_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_nft(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
@@ -184,6 +193,15 @@ async def add_nft(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['remove_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_nft(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
@@ -202,6 +220,14 @@ async def remove_nft(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['show_nft'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def show_nft(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     chat_id = cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     admins = cur.execute(f"SELECT id_users FROM Admins WHERE chat_id == {chat_id}").fetchall()
@@ -233,6 +259,15 @@ async def show_nft(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['add_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def add_admin(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     if message.from_user.id == owner_id:
         await message.answer('To add a new admin, send his username.\n⚠️ Example: "@username"\n❗️Reply for this message❗️')
@@ -243,6 +278,15 @@ async def add_admin(message: types.Message, state: FSMContext):
         
 @dp.message_handler(commands=['remove_admin'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_admin(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+
     owner_id = cur.execute(f"SELECT owner_id FROM Chats WHERE id_tg == {message.chat.id}").fetchall()[0][0]
     if message.from_user.id == owner_id:
         await message.answer('To remove admin, send his username.\n⚠️ Example: "@username"\n❗️Reply for this message❗️')
@@ -253,6 +297,18 @@ async def remove_admin(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['reg'], state='*', chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP])
 async def remove_admin(message: types.Message, state: FSMContext):
+    if not cur.execute(f"SELECT id FROM Chats WHERE id_tg == {message.chat.id}").fetchall():
+        chat_admins = await bot.get_chat_administrators(message.chat.id)
+        owner_id = -1
+        for user in chat_admins:
+            if user['status'] == 'creator':
+                owner_id = user['user']['id']
+        cur.execute(f"INSERT INTO Chats (id_tg, name, owner_id) VALUES ({message.chat.id}, '{message.chat.title}', {owner_id})")
+        con.commit()
+
+    bot_username = await bot.get_me()
+    bot_username = bot_username.username
+
     if not cur.execute(f"SELECT id_tg FROM Users WHERE id_tg == {message.from_user.id}").fetchall():
         cur.execute(f"INSERT INTO Users (id_tg, username) VALUES ({message.from_user.id}, '{message.from_user.username}')")
         con.commit()
@@ -260,8 +316,9 @@ async def remove_admin(message: types.Message, state: FSMContext):
         id = cur.execute(f"SELECT id FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0]
         cur.execute(f"INSERT INTO Members (user_id, chat_id) VALUES ({id}, {chat_id})")
         con.commit()
-        await message.answer(f'@{message.from_user.username} have successfully registered ✅')
+        await message.answer(f'@{message.from_user.username} have successfully registered ✅\n')
     if cur.execute(f"SELECT address FROM Users WHERE id_tg == {message.from_user.id}").fetchall()[0][0] is None:
+        await message.answer(f'You have not connected the wallet if the bot has not written to you, you should start a dialogue with @{bot_username} and re-send /reg')
         await bot.send_message(chat_id=message.from_user.id, text="Connect your wallet (Tonkeeper or Tonhub)🚀", reply_markup=kb.Walletkb)
     await message.delete()
 
