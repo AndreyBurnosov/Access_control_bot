@@ -96,7 +96,8 @@ async def connect_wallet_tonkeeper(message: types.Message):
                 flag = False
                 address = Address(connector.account.address).to_string(True, True, True)
             break
-    
+
+    await connector.disconnect
     await msg.delete()
     await bot.send_message(message.from_user.id, 'Your wallet has been successfully connect.👌\nSend the application again🔄')
     cur.execute(f"UPDATE Users SET address = '{address}' WHERE id_tg = {message.from_user.id}")
