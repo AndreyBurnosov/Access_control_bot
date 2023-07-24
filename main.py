@@ -54,7 +54,7 @@ async def check_to_accept_user(update: types.ChatJoinRequest):
         while i < len(nfts):
             url = f'https://tonapi.io/v2/accounts/{address}/nfts?collection={nfts[i]}&limit=1000&offset=0&indirect_ownership=false'
             try:
-                response = requests.get(url).json()
+                response = requests.get(url).json()['nft_items']
             except:
                 continue
             if response:
