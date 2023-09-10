@@ -109,7 +109,7 @@ async def connect_wallet_tonhub(message: types.Message):
     
     wallets_list = connector.get_wallets()
 
-    generated_url_tonhub = await connector.connect(wallets_list[1])
+    generated_url_tonhub = await connector.connect(wallets_list[2])
     urlkb = InlineKeyboardMarkup(row_width=1)
     urlButton = InlineKeyboardButton(text='Open Tonhub', url=generated_url_tonhub)
     urlkb.add(urlButton)
